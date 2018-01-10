@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>submit</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.3/css/bootstrap.min.css">
+  </head>
+  <body>
+    <div class="container">
+      <form method="post" action="/api/new-dish" id="new-dish" >
+        <div class="form-group">
+          <h2>New Dish</h2>
+          <div><input name="name" class="form-control" type="text" id="new-dish-name" placeholder="dish name"></div>
+          <input type="submit">
+        </div>
+      </form>
+      <form method="post" action="/api/new-order" id="new-order">
+        <div class="form-group">
+          <h2>New Order</h2>
+          <div><input name="dishId" class="form-control" type="text" id="dish-id" placeholder="dish id"></div>
+          <div><input name="quantity" class="form-control" type="number" id="quantity" placeholder="quantity"></div>
+          <input type="submit">
+      </div>
+      </form>
+      <form method="post" action="/api/set-predicted" id="set-prediction">
+        <div class="form-group">
+          <h2>Set Prediction</h2>
+          <div><input name="dishId" class="form-control" type="text" id="dish-id-prediction" placeholder="dish id"></div>
+          <div><input name="prediction" class="form-control" type="number" id="prediction" placeholder="prediction"></div>
+          <input type="submit">
+        </div>
+      </form>
+      <div>
+        <table class="table table-bordered table-dark">
+          <thead>
+            <tr><th>Dish Name</th><th>id</th></tr>
+          </thead>
+          <tbody id="dish-rows">
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <script type="text/javascript" src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+    <script type="text/javascript">
+      $.getJSON('/api/dishes').then((data)=>{
+        let rows = "";
+        data.dishes.forEach((dish)=>{
+          rows += `<tr><td>${dish.name}</td><td>${dish._id}</td></tr>`;
+        })
+        $('#dish-rows').html(rows);
+      }).catch((err)=>{
+        console.log(err)
+      })
+    </script>
+  </body>
+</html>

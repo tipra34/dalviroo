@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Kitchen</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.3/css/bootstrap.min.css">
+  </head>
+  <body>
+    <div class="container">
+      <table class="table">
+        <thead>
+          <tr><th>Name</th><th>Quantity</th><th>Created-Till-Now</th><th>Predicted</th></tr>
+        </thead>
+        <tbody data-bind="foreach: data">
+          <tr>
+            <td data-bind="text: name"></td>
+            <td data-bind="text: quantity"></td>
+            <td data-bind="text: createdTillNow"></td>
+            <td data-bind="text: predicted"></td>
+            <td><button data-bind="click: $root.done">Done</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.0.4/socket.io.slim.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.4.2/knockout-min.js"></script>
+    <script>var socket = io();</script>
+    <script>
+      var Orders = function(){
+        var self = this;
+        self.orders = ko.observableArray([]);
+        self.dishes =  ko.observableArray([]);
+        self.data = ko.observableArray([]);
+        self.updateData = function(){
+          if(self.orders().length!==0 && self.dishes().length!==0){
+            data = self.orders().map((order)=>{
+             var curDish = self.dishes().find((dish)=>{
+               return dish._id === order.dishId;
+             })
+             order.name = curDish.name;
+             order.createdTillNow = curDish.createdTillNow;
+             order.predicted = curDish.predicted;
+             return order;
+           })
+           self.data.removeAll();
+           data.forEach(function(d){
+             self.data.push(d)
+           })
+          }
+          else self.data.removeAll();
+        }
+        self.orders.subscribe(self.updateData)
+        self.dishes.subscribe(self.updateData)
+      }
+
+      var ViewModel = function(){
+        var self = this;
+        self.orders = new Orders();
+        self.data = self.orders.data;
+        self.done = function(order){
+          socket.emit('done', order)
+        }
+      }
+
+      var viewModel = new ViewModel();
+      socket.on('orders',function(data){
+        viewModel.orders.orders(data);
+      });
+
+      socket.on('dishes',function(data){
+        viewModel.orders.dishes(data);
+      });
+
+      socket.on('done', function(orderId){
+        var order = viewModel.orders.orders.remove((element)=>{
+          return element._id === orderId;
+        })[0];
+        var dishes = viewModel.orders.dishes();
+        var index = dishes.findIndex((dish)=>{
+          return dish._id === order.dishId;
+        });
+        dishes[index].createdTillNow += order.quantity;
+        viewModel.orders.dishes(dishes);
+      });
+
+      socket.on('new-order',function(order){
+        viewModel.orders.orders.push(order);
+      });
+
+      socket.on('update-prediction', function(dish){
+        var dishes = viewModel.orders.dishes();
+        var index = dishes.findIndex((d)=>{
+          return d._id === dish._id;
+        })
+        dishes[index] = dish;
+        viewModel.orders.dishes(dishes);
+      })
+      socket.on('new-dish', function(dish){
+        viewModel.orders.dishes.push(dish);
+      })
+      ko.applyBindings(viewModel);
+    </script>
+  </body>
+</html>
